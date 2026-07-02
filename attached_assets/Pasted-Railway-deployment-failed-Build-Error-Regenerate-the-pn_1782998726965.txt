@@ -1,0 +1,37 @@
+Railway deployment failed — Build Error
+
+Regenerate the pnpm lockfile by running "pnpm install" locally and committing the updated pnpm-lock.yaml. The build failed because pnpm-lock.yaml is out of sync with the "overrides" configuration in pnpm-workspace.yaml. Railpack runs "pnpm install --frozen-lockfile" during builds, which refuses to proceed when the lockfile doesn't match the workspace config.
+
+Repository: https://github.com/fiilu12/Frytasshop
+Branch: main · Commit: 853e5ab — Discord bot: propozycje ✅/❌ z mutual exclusion
+Deployment ID: ac5a25c4-cf81-4a05-8016-1d24b6a2aa0e
+Service ID: 69796e5d-565a-4e1c-b453-078278271ada
+Environment ID: d90d9da7-dde1-4e5c-b993-789dfdbaf8fd
+
+---
+
+## Problem
+The @workspace/mockup-sandbox service is a pnpm monorepo built with Railpack. The build fails at the install step with:
+
+  ERR_PNPM_LOCKFILE_CONFIG_MISMATCH  Cannot proceed with the frozen installation. The current "overrides" configuration doesn't match the value found in the lockfile
+
+Railpack runs `pnpm install --frozen-lockfile --prefer-offline` during the build. This command exits with code 1 when the lockfile is out of sync with the workspace config.
+
+## Diagnosis
+The pnpm-workspace.yaml file defines an extensive `overrides` section that excludes platform-specific optional packages for esbuild, lightningcss, @tailwindcss/oxide, rollup, and @expo/ngrok-bin. The committed pnpm-lock.yaml does not reflect these overrides — it was generated from a different configuration state. The triggering commit (853e5ab) only changed artifacts/bot-config.json and did not touch any dependency or config files, confirming the mismatch is pre-existing. No subsequent commits have fixed this on HEAD.
+
+## Fix
+This fix cannot be implemented as a pure file edit because it requires running `pnpm install` to regenerate the lockfile. The steps are:
+
+1. On your local machine, from the repo root, run:
+   ```
+   pnpm install --no-frozen-lockfile
+   ```
+2. This will update `pnpm-lock.yaml` to reflect the current `overrides` in `pnpm-workspace.yaml`.
+3. Commit and push the updated `pnpm-lock.yaml` to the `main` branch:
+   ```
+   git add pnpm-lock.yaml
+   git commit -m "fix: regenerate pnpm lockfile to match workspace overrides"
+   git push origin main
+   ```
+This will allow the next Railway build to pass `pnpm install --frozen-lockfile` successfully.
