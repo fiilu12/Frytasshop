@@ -29,7 +29,8 @@ export async function handleReactionAdd(
 
   // Sprawdź czy to właściwy kanał, wiadomość i emotka
   if (reaction.message.channelId !== VERIFY_CHANNEL_ID) return;
-  if (verifyMessageId && reaction.message.id !== verifyMessageId) return;
+  // Fail closed: jeśli nie ma skonfigurowanej wiadomości weryfikacyjnej, ignoruj
+  if (!verifyMessageId || reaction.message.id !== verifyMessageId) return;
 
   const emojiName = reaction.emoji.name ?? reaction.emoji.toString();
   if (emojiName !== VERIFY_EMOJI && reaction.emoji.toString() !== VERIFY_EMOJI) return;
@@ -77,7 +78,7 @@ export async function handleReactionRemove(
   const { verifyMessageId } = getConfig();
 
   if (reaction.message.channelId !== VERIFY_CHANNEL_ID) return;
-  if (verifyMessageId && reaction.message.id !== verifyMessageId) return;
+  if (!verifyMessageId || reaction.message.id !== verifyMessageId) return;
 
   const emojiName = reaction.emoji.name ?? reaction.emoji.toString();
   if (emojiName !== VERIFY_EMOJI && reaction.emoji.toString() !== VERIFY_EMOJI) return;

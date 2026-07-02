@@ -22,10 +22,10 @@ export async function handleTicketInteraction(interaction: ButtonInteraction): P
     await interaction.deferReply({ ephemeral: true });
 
     const guildMember = member as GuildMember;
+    const channelName = `ticket-${guildMember.user.username.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20)}`;
+
     const existingChannel = guild.channels.cache.find(
-      (ch) =>
-        ch.name === `ticket-${guildMember.user.username.toLowerCase().replace(/[^a-z0-9]/g, "")}` &&
-        ch.type === ChannelType.GuildText
+      (ch) => ch.name === channelName && ch.type === ChannelType.GuildText
     );
 
     if (existingChannel) {
@@ -36,8 +36,6 @@ export async function handleTicketInteraction(interaction: ButtonInteraction): P
     }
 
     const supportRole = guild.roles.cache.find((r) => r.name === SUPPORT_ROLE_NAME);
-
-    const channelName = `ticket-${guildMember.user.username.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20)}`;
 
     const permissionOverwrites = [
       {

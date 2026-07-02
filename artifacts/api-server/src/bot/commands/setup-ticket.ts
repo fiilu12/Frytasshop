@@ -39,7 +39,12 @@ export const setupTicketCommand = {
         .setStyle(ButtonStyle.Primary)
     );
 
-    await interaction.channel!.send({ embeds: [embed], components: [row] });
+    const ch = interaction.channel;
+    if (!ch || !ch.isSendable()) {
+      await interaction.editReply({ content: "❌ Nie można wysłać wiadomości na tym kanale." });
+      return;
+    }
+    await ch.send({ embeds: [embed], components: [row] });
     await interaction.editReply({ content: "✅ Panel ticketów został ustawiony!" });
   },
 };

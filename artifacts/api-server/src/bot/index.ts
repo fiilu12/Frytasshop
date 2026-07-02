@@ -35,7 +35,7 @@ export function createBot(): Client {
     partials: [Partials.Message, Partials.Channel, Partials.Reaction],
   });
 
-  client.once("ready", () => {
+  client.once("clientReady", () => {
     logger.info(`🤖 Bot gotowy: ${client.user?.tag}`);
   });
 

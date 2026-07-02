@@ -37,6 +37,7 @@ export async function handleProposalMessage(message: Message): Promise<void> {
     .setFooter({ text: "Zagłosuj używając reakcji poniżej" })
     .setTimestamp();
 
+  if (!message.channel.isSendable()) return;
   const proposalMsg = await message.channel.send({ embeds: [embed] });
 
   await proposalMsg.react(UPVOTE);
@@ -44,8 +45,10 @@ export async function handleProposalMessage(message: Message): Promise<void> {
 
   // Aktualizuj embed po każdej reakcji
   const collector = proposalMsg.createReactionCollector({
-    filter: (r) => [UPVOTE, DOWNVOTE].includes(r.emoji.name ?? ""),
+    filter: (r: import("discord.js").MessageReaction) =>
+      [UPVOTE, DOWNVOTE].includes(r.emoji.name ?? ""),
     time: 7 * 24 * 60 * 60 * 1000, // 7 dni
+    dispose: true,
   });
 
   collector.on("collect", async () => {
