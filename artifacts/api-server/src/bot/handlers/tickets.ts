@@ -6,13 +6,9 @@ import {
   ChannelType,
   OverwriteType,
   PermissionFlagsBits,
-  AttachmentBuilder,
   type ButtonInteraction,
   type GuildMember,
   type TextChannel,
-  type Collection,
-  type Snowflake,
-  type Message,
   type Client,
 } from "discord.js";
 import {
@@ -26,52 +22,6 @@ import {
 const SUPPORT_ROLE_NAME = "Moderator";
 const DELETE_AFTER_MS = 24 * 60 * 60 * 1000; // 24 godziny
 
-/** Pobiera wszystkie wiadomości z kanału (do 1000). */
-async function fetchAllMessages(channel: TextChannel): Promise<Message[]> {
-  const all: Message[] = [];
-  let before: Snowflake | undefined;
-
-  while (true) {
-    const batch: Collection<Snowflake, Message> = await channel.messages.fetch({
-      limit: 100,
-      ...(before ? { before } : {}),
-    });
-    if (batch.size === 0) break;
-    all.push(...batch.values());
-    before = batch.last()!.id;
-    if (batch.size < 100) break;
-  }
-
-  return all.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-}
-
-/** Buduje treść pliku .txt z transkryptem. */
-function buildTranscript(messages: Message[], channelName: string, openedAt: string): string {
-  const lines: string[] = [
-    `=== TRANSKRYPT TICKETU ===`,
-    `Kanał: #${channelName}`,
-    `Otwarto: ${openedAt}`,
-    `Zamknięto: ${new Date().toLocaleString("pl-PL")}`,
-    `Liczba wiadomości: ${messages.length}`,
-    `${"=".repeat(40)}`,
-    "",
-  ];
-
-  for (const msg of messages) {
-    const time = msg.createdAt.toLocaleString("pl-PL");
-    const author = msg.author.tag;
-    const content = msg.content || (msg.embeds.length > 0 ? "[Embed]" : "[Brak treści]");
-    const attachments =
-      msg.attachments.size > 0
-        ? `\n  📎 Załączniki: ${[...msg.attachments.values()].map((a) => a.url).join(", ")}`
-        : "";
-
-    lines.push(`[${time}] ${author}: ${content}${attachments}`);
-  }
-
-  lines.push("", `${"=".repeat(40)}`, "Koniec transkryptu.");
-  return lines.join("\n");
-}
 
 /** Faktycznie usuwa kanał i czyści config. */
 async function deleteTicketChannel(client: Client, channelId: string): Promise<void> {
@@ -113,45 +63,6 @@ async function closeTicket(
     });
   } catch {
     // brak uprawnień — ignoruj
-  }
-
-  // Pobierz transkrypt przed dodaniem wiadomości zamknięcia
-  let transcriptText = "";
-  try {
-    const messages = await fetchAllMessages(channel);
-    const openedAt = channel.topic?.match(/Otwarto: ([^|]+)/)?.[1]?.trim() ?? "nieznana";
-    transcriptText = buildTranscript(messages, channel.name, openedAt);
-  } catch {
-    transcriptText = "Nie udało się pobrać historii wiadomości.";
-  }
-
-  // Wyślij transkrypt właścicielowi na PV
-  try {
-    const guild = channel.guild;
-    const owner = await guild.members.fetch(ownerId).catch(() => null);
-    if (owner) {
-      const fileBuffer = Buffer.from(transcriptText, "utf-8");
-      const attachment = new AttachmentBuilder(fileBuffer, {
-        name: `transkrypt-${channel.name}-${Date.now()}.txt`,
-        description: "Transkrypt ticketu",
-      });
-
-      const dmEmbed = new EmbedBuilder()
-        .setTitle("📄 Transkrypt Twojego Ticketu")
-        .setDescription(
-          `Twój ticket na serwerze **${guild.name}** został zamknięty przez ${closedBy}.\n\n` +
-            "W załączniku znajdziesz pełną historię rozmowy.",
-        )
-        .setColor(0x5865f2)
-        .setFooter({ text: `Serwer: ${guild.name}` })
-        .setTimestamp();
-
-      await owner.send({ embeds: [dmEmbed], files: [attachment] }).catch(() => {
-        // zablokowane PV — ignorujemy
-      });
-    }
-  } catch {
-    // błąd DM — kontynuujemy
   }
 
   // Wyślij info o zamknięciu i automatycznym usunięciu
