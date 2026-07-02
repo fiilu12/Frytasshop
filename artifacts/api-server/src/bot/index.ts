@@ -10,7 +10,7 @@ import { logger } from "../lib/logger.js";
 import { setupTicketCommand } from "./commands/setup-ticket.js";
 import { propozycjeCommand } from "./commands/propozycje.js";
 import { weryfikacjaCommand } from "./commands/weryfikacja.js";
-import { handleTicketInteraction } from "./handlers/tickets.js";
+import { handleTicketInteraction, schedulePendingDeletions } from "./handlers/tickets.js";
 import { handleProposalMessage } from "./handlers/proposals.js";
 import { handleReactionAdd, handleReactionRemove } from "./handlers/verification.js";
 
@@ -37,6 +37,8 @@ export function createBot(): Client {
 
   client.once("clientReady", () => {
     logger.info(`🤖 Bot gotowy: ${client.user?.tag}`);
+    // Przywróć timery usunięć po restarcie bota
+    schedulePendingDeletions(client);
   });
 
   client.on("interactionCreate", async (interaction) => {

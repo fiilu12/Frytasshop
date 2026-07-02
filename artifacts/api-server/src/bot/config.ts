@@ -5,16 +5,24 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = path.join(__dirname, "../../bot-config.json");
 
+export interface PendingDeletion {
+  channelId: string;
+  ownerId: string;
+  deleteAt: number; // Unix timestamp ms
+}
+
 interface BotConfig {
-  proposalChannels: string[]; // channel IDs configured for proposals
-  ticketCategory: string | null; // category ID for ticket channels
-  verifyMessageId: string | null; // message ID of verification message
+  proposalChannels: string[];
+  ticketCategory: string | null;
+  verifyMessageId: string | null;
+  pendingDeletions: PendingDeletion[]; // closed tickets awaiting 24h deletion
 }
 
 let config: BotConfig = {
   proposalChannels: [],
   ticketCategory: null,
   verifyMessageId: null,
+  pendingDeletions: [],
 };
 
 export function loadConfig(): void {
@@ -56,4 +64,33 @@ export function setVerifyMessageId(id: string): void {
 export function setTicketCategory(id: string | null): void {
   config.ticketCategory = id;
   saveConfig();
+}
+
+/** Dodaje ticket do kolejki usunięcia za 24h. */
+export function scheduleDeletion(channelId: string, ownerId: string): void {
+  // Usuń ewentualny poprzedni wpis dla tego kanału
+  config.pendingDeletions = config.pendingDeletions.filter((d) => d.channelId !== channelId);
+  config.pendingDeletions.push({
+    channelId,
+    ownerId,
+    deleteAt: Date.now() + 24 * 60 * 60 * 1000,
+  });
+  saveConfig();
+}
+
+/** Usuwa ticket z kolejki usunięcia (np. po faktycznym usunięciu kanału). */
+export function removeDeletion(channelId: string): void {
+  config.pendingDeletions = config.pendingDeletions.filter((d) => d.channelId !== channelId);
+  saveConfig();
+}
+
+/** Sprawdza czy użytkownik ma aktywny (otwarty) ticket — nie liczy zamkniętych oczekujących na usunięcie. */
+export function hasOpenTicket(ownerId: string): boolean {
+  // Zamknięte tickety (pending deletion) NIE blokują nowego ticketu
+  return false; // logika oparta na nazwie kanału — sprawdzana w handlerze
+}
+
+/** Zwraca listę zamkniętych ticketów danego użytkownika oczekujących na usunięcie. */
+export function getPendingDeletionsForUser(ownerId: string): PendingDeletion[] {
+  return config.pendingDeletions.filter((d) => d.ownerId === ownerId);
 }

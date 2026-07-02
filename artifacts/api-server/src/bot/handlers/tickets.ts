@@ -13,9 +13,18 @@ import {
   type Collection,
   type Snowflake,
   type Message,
+  type Client,
 } from "discord.js";
+import {
+  scheduleDeletion,
+  removeDeletion,
+  getConfig,
+  getPendingDeletionsForUser,
+  type PendingDeletion,
+} from "../config.js";
 
 const SUPPORT_ROLE_NAME = "Moderator";
+const DELETE_AFTER_MS = 24 * 60 * 60 * 1000; // 24 godziny
 
 /** Pobiera wszystkie wiadomości z kanału (do 1000). */
 async function fetchAllMessages(channel: TextChannel): Promise<Message[]> {
@@ -33,7 +42,6 @@ async function fetchAllMessages(channel: TextChannel): Promise<Message[]> {
     if (batch.size < 100) break;
   }
 
-  // Sortuj od najstarszej do najnowszej
   return all.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
 }
 
@@ -53,15 +61,117 @@ function buildTranscript(messages: Message[], channelName: string, openedAt: str
     const time = msg.createdAt.toLocaleString("pl-PL");
     const author = msg.author.tag;
     const content = msg.content || (msg.embeds.length > 0 ? "[Embed]" : "[Brak treści]");
-    const attachments = msg.attachments.size > 0
-      ? `\n  📎 Załączniki: ${[...msg.attachments.values()].map((a) => a.url).join(", ")}`
-      : "";
+    const attachments =
+      msg.attachments.size > 0
+        ? `\n  📎 Załączniki: ${[...msg.attachments.values()].map((a) => a.url).join(", ")}`
+        : "";
 
     lines.push(`[${time}] ${author}: ${content}${attachments}`);
   }
 
   lines.push("", `${"=".repeat(40)}`, "Koniec transkryptu.");
   return lines.join("\n");
+}
+
+/** Faktycznie usuwa kanał i czyści config. */
+async function deleteTicketChannel(client: Client, channelId: string): Promise<void> {
+  try {
+    const channel = await client.channels.fetch(channelId).catch(() => null);
+    if (channel && channel.isDMBased() === false) {
+      await (channel as TextChannel).delete("Automatyczne usunięcie po 24h");
+    }
+  } catch {
+    // kanał już usunięty
+  } finally {
+    removeDeletion(channelId);
+  }
+}
+
+/**
+ * Uruchamia timery dla wszystkich zaplanowanych usunięć (np. po restarcie bota).
+ * Kanały, których czas minął, są usuwane natychmiast.
+ */
+export function schedulePendingDeletions(client: Client): void {
+  const { pendingDeletions } = getConfig();
+  for (const entry of pendingDeletions) {
+    const delay = Math.max(0, entry.deleteAt - Date.now());
+    setTimeout(() => deleteTicketChannel(client, entry.channelId), delay);
+  }
+}
+
+/** Zamknięcie kanału: zablokowanie pisania, zapis do config, timer 24h. */
+async function closeTicket(
+  channel: TextChannel,
+  closedBy: GuildMember,
+  ownerId: string,
+  client: Client,
+): Promise<void> {
+  // Zablokuj pisanie w kanale (zachowaj widoczność żeby gracze widzieli że jest zamknięty)
+  try {
+    await channel.permissionOverwrites.edit(ownerId, {
+      SendMessages: false,
+    });
+  } catch {
+    // brak uprawnień — ignoruj
+  }
+
+  // Pobierz transkrypt przed dodaniem wiadomości zamknięcia
+  let transcriptText = "";
+  try {
+    const messages = await fetchAllMessages(channel);
+    const openedAt = channel.topic?.match(/Otwarto: ([^|]+)/)?.[1]?.trim() ?? "nieznana";
+    transcriptText = buildTranscript(messages, channel.name, openedAt);
+  } catch {
+    transcriptText = "Nie udało się pobrać historii wiadomości.";
+  }
+
+  // Wyślij transkrypt właścicielowi na PV
+  try {
+    const guild = channel.guild;
+    const owner = await guild.members.fetch(ownerId).catch(() => null);
+    if (owner) {
+      const fileBuffer = Buffer.from(transcriptText, "utf-8");
+      const attachment = new AttachmentBuilder(fileBuffer, {
+        name: `transkrypt-${channel.name}-${Date.now()}.txt`,
+        description: "Transkrypt ticketu",
+      });
+
+      const dmEmbed = new EmbedBuilder()
+        .setTitle("📄 Transkrypt Twojego Ticketu")
+        .setDescription(
+          `Twój ticket na serwerze **${guild.name}** został zamknięty przez ${closedBy}.\n\n` +
+            "W załączniku znajdziesz pełną historię rozmowy.",
+        )
+        .setColor(0x5865f2)
+        .setFooter({ text: `Serwer: ${guild.name}` })
+        .setTimestamp();
+
+      await owner.send({ embeds: [dmEmbed], files: [attachment] }).catch(() => {
+        // zablokowane PV — ignorujemy
+      });
+    }
+  } catch {
+    // błąd DM — kontynuujemy
+  }
+
+  // Wyślij info o zamknięciu i automatycznym usunięciu
+  const closeEmbed = new EmbedBuilder()
+    .setTitle("🔒 Ticket Zamknięty")
+    .setDescription(
+      `Ticket zamknięty przez ${closedBy}.\n\n` +
+        "📄 Transkrypt został wysłany właścicielowi na wiadomości prywatne.\n\n" +
+        "⏳ Kanał zostanie **automatycznie usunięty za 24 godziny**.",
+    )
+    .setColor(0xed4245)
+    .setTimestamp();
+
+  if (channel.isSendable()) {
+    await channel.send({ embeds: [closeEmbed] }).catch(() => {});
+  }
+
+  // Zaplanuj usunięcie za 24h i zapisz do config (przeżyje restart)
+  scheduleDeletion(channel.id, ownerId);
+  setTimeout(() => deleteTicketChannel(client, channel.id), DELETE_AFTER_MS);
 }
 
 export async function handleTicketInteraction(interaction: ButtonInteraction): Promise<void> {
@@ -79,13 +189,18 @@ export async function handleTicketInteraction(interaction: ButtonInteraction): P
       .replace(/[^a-z0-9]/g, "")
       .slice(0, 20)}`;
 
-    const existingChannel = guild.channels.cache.find(
-      (ch) => ch.name === channelName && ch.type === ChannelType.GuildText,
-    );
+    // Sprawdź czy użytkownik ma OTWARTY ticket (nie zamknięty oczekujący na usunięcie)
+    const closedChannelIds = getPendingDeletionsForUser(guildMember.id).map((d) => d.channelId);
 
-    if (existingChannel) {
+    const existingOpenChannel = guild.channels.cache.find((ch) => {
+      if (ch.type !== ChannelType.GuildText) return false;
+      if (closedChannelIds.includes(ch.id)) return false; // zamknięty — nie blokuje
+      return ch.name === channelName;
+    });
+
+    if (existingOpenChannel) {
       await interaction.editReply({
-        content: `❌ Masz już otwarty ticket: ${existingChannel}`,
+        content: `❌ Masz już otwarty ticket: ${existingOpenChannel}\nZamknij go przed otwarciem nowego.`,
       });
       return;
     }
@@ -163,8 +278,6 @@ export async function handleTicketInteraction(interaction: ButtonInteraction): P
 
   // ── ZAMYKANIE TICKETU ─────────────────────────────────────────────────────
   if (customId.startsWith("ticket_close_")) {
-    await interaction.deferReply({ ephemeral: false });
-
     const guildMember = member as GuildMember;
     const isAdmin = guildMember.permissions.has(PermissionFlagsBits.Administrator);
     const supportRole = guild.roles.cache.find((r) => r.name === SUPPORT_ROLE_NAME);
@@ -173,8 +286,9 @@ export async function handleTicketInteraction(interaction: ButtonInteraction): P
     const isOwner = guildMember.id === ownerId;
 
     if (!isAdmin && !hasSupportRole && !isOwner) {
-      await interaction.editReply({
+      await interaction.reply({
         content: "❌ Nie masz uprawnień do zamknięcia tego ticketu.",
+        ephemeral: true,
       });
       return;
     }
@@ -182,67 +296,26 @@ export async function handleTicketInteraction(interaction: ButtonInteraction): P
     const channel = interaction.channel as TextChannel | null;
     if (!channel) return;
 
-    // Wyciągnij ownerId z topic kanału jako fallback
+    // Pobierz ownerId z topic jeśli customId nie zawiera właściwego
     const topicMatch = channel.topic?.match(/ownerId:(\d+)/);
-    const ticketOwnerId = ownerId || topicMatch?.[1];
+    const ticketOwnerId = topicMatch?.[1] ?? ownerId;
 
-    const closingEmbed = new EmbedBuilder()
-      .setTitle("🔒 Zamykanie Ticketu")
-      .setDescription(
-        `Ticket zamykany przez ${guildMember}.\nTrwa zapisywanie transkryptu…`,
-      )
-      .setColor(0xed4245)
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [closingEmbed] });
-
-    // Pobierz transkrypt
-    let transcriptText = "";
-    try {
-      const messages = await fetchAllMessages(channel);
-      const openedAt = channel.topic?.match(/Otwarto: ([^|]+)/)?.[1]?.trim() ?? "nieznana";
-      transcriptText = buildTranscript(messages, channel.name, openedAt);
-    } catch {
-      transcriptText = "Nie udało się pobrać historii wiadomości.";
+    // Sprawdź czy ticket nie jest już zamknięty
+    const pending = getConfig().pendingDeletions.find((d) => d.channelId === channel.id);
+    if (pending) {
+      await interaction.reply({
+        content: "❌ Ten ticket jest już zamknięty i oczekuje na usunięcie.",
+        ephemeral: true,
+      });
+      return;
     }
 
-    // Wyślij transkrypt właścicielowi na PV
-    if (ticketOwnerId) {
-      try {
-        const owner = await guild.members.fetch(ticketOwnerId).catch(() => null);
-        if (owner) {
-          const fileBuffer = Buffer.from(transcriptText, "utf-8");
-          const attachment = new AttachmentBuilder(fileBuffer, {
-            name: `transkrypt-${channel.name}-${Date.now()}.txt`,
-            description: "Transkrypt ticketu",
-          });
+    await interaction.reply({
+      content: "🔒 Zamykanie ticketu i generowanie transkryptu…",
+      ephemeral: true,
+    });
 
-          const dmEmbed = new EmbedBuilder()
-            .setTitle("📄 Transkrypt Twojego Ticketu")
-            .setDescription(
-              `Twój ticket na serwerze **${guild.name}** został zamknięty przez ${guildMember}.\n\n` +
-                "W załączniku znajdziesz pełną historię rozmowy.",
-            )
-            .setColor(0x5865f2)
-            .setFooter({ text: `Serwer: ${guild.name}` })
-            .setTimestamp();
-
-          await owner.send({ embeds: [dmEmbed], files: [attachment] }).catch(() => {
-            // użytkownik może mieć zablokowane PV — ignorujemy
-          });
-        }
-      } catch {
-        // błąd DM — kontynuujemy usuwanie
-      }
-    }
-
-    // Usuń kanał po chwili
-    setTimeout(async () => {
-      try {
-        await channel.delete(`Ticket zamknięty przez ${guildMember.user.tag}`);
-      } catch {
-        // kanał mógł już zostać usunięty
-      }
-    }, 3000);
+    const client = interaction.client;
+    await closeTicket(channel, guildMember, ticketOwnerId, client);
   }
 }
