@@ -1,5 +1,12 @@
 {
   "proposalChannels": [],
   "ticketCategory": null,
-  "verifyMessageId": "1522168786168315956"
+  "verifyMessageId": "1522168786168315956",
+  "pendingDeletions": [
+    {
+      "channelId": "1522174038007484518",
+      "ownerId": "825053796043718717",
+      "deleteAt": 1783071375290
+    }
+  ]
 }
