@@ -1,5 +1,7 @@
 {
-  "proposalChannels": [],
+  "proposalChannels": [
+    "1522167221810368603"
+  ],
   "ticketCategory": null,
   "verifyMessageId": "1522168786168315956",
   "pendingDeletions": [
