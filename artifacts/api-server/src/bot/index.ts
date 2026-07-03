@@ -5,14 +5,18 @@ import {
   Collection,
   type ChatInputCommandInteraction,
   type ButtonInteraction,
+  type GuildMember,
 } from "discord.js";
 import { logger } from "../lib/logger.js";
 import { setupTicketCommand } from "./commands/setup-ticket.js";
 import { propozycjeCommand } from "./commands/propozycje.js";
 import { weryfikacjaCommand } from "./commands/weryfikacja.js";
+import { ustawkanalZaproCommand } from "./commands/ustawkanal-zapro.js";
+import { sprawdzzaproCommand } from "./commands/sprawdzzapro.js";
 import { handleTicketInteraction, schedulePendingDeletions } from "./handlers/tickets.js";
 import { handleProposalMessage } from "./handlers/proposals.js";
 import { handleReactionAdd, handleReactionRemove } from "./handlers/verification.js";
+import { cacheInvites, handleMemberJoin, handleMemberLeave } from "./handlers/invites.js";
 
 export const slashCommands = new Collection<string, {
   data: { name: string };
@@ -22,6 +26,8 @@ export const slashCommands = new Collection<string, {
 slashCommands.set("setup-ticket", setupTicketCommand);
 slashCommands.set("propozycje", propozycjeCommand);
 slashCommands.set("weryfikacja", weryfikacjaCommand);
+slashCommands.set("ustawkanal_zapro", ustawkanalZaproCommand);
+slashCommands.set("sprawdzzapro", sprawdzzaproCommand);
 
 export function createBot(): Client {
   const client = new Client({
@@ -30,15 +36,16 @@ export function createBot(): Client {
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.GuildMessageReactions,
       GatewayIntentBits.GuildMembers,
+      GatewayIntentBits.GuildInvites,
       GatewayIntentBits.MessageContent,
     ],
     partials: [Partials.Message, Partials.Channel, Partials.Reaction],
   });
 
-  client.once("clientReady", () => {
+  client.once("clientReady", async () => {
     logger.info(`🤖 Bot gotowy: ${client.user?.tag}`);
-    // Przywróć timery usunięć po restarcie bota
     schedulePendingDeletions(client);
+    await cacheInvites(client);
   });
 
   client.on("interactionCreate", async (interaction) => {
@@ -90,6 +97,22 @@ export function createBot(): Client {
       await handleReactionRemove(reaction, user);
     } catch (err) {
       logger.error({ err }, "Błąd reakcji remove");
+    }
+  });
+
+  client.on("guildMemberAdd", async (member) => {
+    try {
+      await handleMemberJoin(member as GuildMember);
+    } catch (err) {
+      logger.error({ err }, "Błąd guildMemberAdd");
+    }
+  });
+
+  client.on("guildMemberRemove", async (member) => {
+    try {
+      await handleMemberLeave(member as GuildMember);
+    } catch (err) {
+      logger.error({ err }, "Błąd guildMemberRemove");
     }
   });
 

@@ -11,11 +11,19 @@ export interface PendingDeletion {
   deleteAt: number; // Unix timestamp ms
 }
 
+export interface InviterStats {
+  joined: number;
+  left: number;
+  memberIds: string[]; // IDs of members who joined via this inviter
+}
+
 interface BotConfig {
   proposalChannels: string[];
   ticketCategory: string | null;
   verifyMessageId: string | null;
   pendingDeletions: PendingDeletion[]; // closed tickets awaiting 24h deletion
+  inviteChannelId: string | null;
+  inviteStats: Record<string, InviterStats>; // inviterId -> stats
 }
 
 let config: BotConfig = {
@@ -23,6 +31,8 @@ let config: BotConfig = {
   ticketCategory: null,
   verifyMessageId: null,
   pendingDeletions: [],
+  inviteChannelId: null,
+  inviteStats: {},
 };
 
 export function loadConfig(): void {
@@ -93,4 +103,33 @@ export function hasOpenTicket(ownerId: string): boolean {
 /** Zwraca listę zamkniętych ticketów danego użytkownika oczekujących na usunięcie. */
 export function getPendingDeletionsForUser(ownerId: string): PendingDeletion[] {
   return config.pendingDeletions.filter((d) => d.ownerId === ownerId);
+}
+
+export function setInviteChannel(channelId: string | null): void {
+  config.inviteChannelId = channelId;
+  saveConfig();
+}
+
+export function recordJoin(inviterId: string, memberId: string): void {
+  if (!config.inviteStats[inviterId]) {
+    config.inviteStats[inviterId] = { joined: 0, left: 0, memberIds: [] };
+  }
+  const stats = config.inviteStats[inviterId];
+  stats.joined += 1;
+  if (!stats.memberIds.includes(memberId)) stats.memberIds.push(memberId);
+  saveConfig();
+}
+
+export function recordLeave(memberId: string): void {
+  for (const stats of Object.values(config.inviteStats)) {
+    if (stats.memberIds.includes(memberId)) {
+      stats.left += 1;
+      saveConfig();
+      return;
+    }
+  }
+}
+
+export function getInviterStats(inviterId: string): InviterStats | null {
+  return config.inviteStats[inviterId] ?? null;
 }
