@@ -6,11 +6,6 @@
   "verifyMessageId": "1522545174335590594",
   "pendingDeletions": [
     {
-      "channelId": "1522217558487597128",
-      "ownerId": "825053796043718717",
-      "deleteAt": 1783081753607
-    },
-    {
       "channelId": "1522544310426271806",
       "ownerId": "1225823380234571930",
       "deleteAt": 1783159661083
