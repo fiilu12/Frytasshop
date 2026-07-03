@@ -32,6 +32,7 @@ export async function handleProposalMessage(message: Message): Promise<void> {
       { name: `${YES} Tak`, value: "0", inline: true },
       { name: `${NO} Nie`, value: "0", inline: true }
     )
+    .setImage("https://raw.githubusercontent.com/fiilu12/Frytasshop/main/artifacts/api-server/src/bot/assets/banner.jpg")
     .setFooter({ text: "Możesz zagłosować tylko na jedną opcję" })
     .setTimestamp();
 
