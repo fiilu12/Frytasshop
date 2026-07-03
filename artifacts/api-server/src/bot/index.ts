@@ -13,6 +13,7 @@ import { propozycjeCommand } from "./commands/propozycje.js";
 import { weryfikacjaCommand } from "./commands/weryfikacja.js";
 import { ustawkanalZaproCommand } from "./commands/ustawkanal-zapro.js";
 import { sprawdzzaproCommand } from "./commands/sprawdzzapro.js";
+import { wiadomoscCommand } from "./commands/wiadomosc.js";
 import { handleTicketInteraction, schedulePendingDeletions } from "./handlers/tickets.js";
 import { handleProposalMessage } from "./handlers/proposals.js";
 import { handleReactionAdd, handleReactionRemove } from "./handlers/verification.js";
@@ -28,6 +29,7 @@ slashCommands.set("propozycje", propozycjeCommand);
 slashCommands.set("weryfikacja", weryfikacjaCommand);
 slashCommands.set("ustawkanal_zapro", ustawkanalZaproCommand);
 slashCommands.set("sprawdzzapro", sprawdzzaproCommand);
+slashCommands.set("wiadomosc", wiadomoscCommand);
 
 export function createBot(): Client {
   const client = new Client({
