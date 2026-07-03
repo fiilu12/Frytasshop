@@ -1,0 +1,223 @@
+flyctl deploy --build-only --push -a frytasshop --image-label deployment-40c220e544fe726fea83fc8e3fd04b88
+
+==> Verifying app config
+
+--> Verified app config
+
+Validating /usr/src/app/fly.toml
+
+✓ Configuration is valid
+
+==> Building image
+
+Waiting for depot builder...
+
+
+==> Building image with Depot
+
+--> build: (​)
+
+#1 [internal] load build definition from Dockerfile
+
+#1 transferring dockerfile: 445B done
+
+#1 DONE 0.0s
+
+
+#2 [internal] load metadata for docker.io/library/node:20-slim
+
+#2 DONE 0.2s
+
+
+#3 [internal] load .dockerignore
+
+#3 transferring context: 2B done
+
+#3 DONE 0.0s
+
+
+#4 [1/8] FROM docker.io/library/node:20-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0
+
+#4 resolve docker.io/library/node:20-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 done
+
+#4 DONE 0.0s
+
+
+#5 [2/8] RUN npm install -g pnpm
+
+#5 CACHED
+
+
+#6 [3/8] WORKDIR /app
+
+#6 CACHED
+
+
+#7 [4/8] COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+
+#7 CACHED
+
+
+#8 [5/8] COPY artifacts/api-server/package.json ./artifacts/api-server/
+
+#8 CACHED
+
+
+#9 [internal] load build context
+
+#9 transferring context: 2.02MB 0.1s done
+
+#9 ...
+
+
+#10 [6/8] RUN pnpm install --no-frozen-lockfile
+
+#10 0.699 Scope: all 2 workspace projects
+
+#10 0.972 /app/artifacts/api-server:
+
+#10 0.972  ERR_PNPM_WORKSPACE_PKG_NOT_FOUND  In artifacts/api-server: "@workspace/api-zod@workspace:*" is in the dependencies but no package named "@workspace/api-zod" is present in the workspace
+
+#10 0.972
+
+#10 0.972 This error happened while installing a direct dependency of /app/artifacts/api-server
+
+#10 0.972
+
+#10 0.972 Packages found in the workspace:
+
+#10 ERROR: process "/bin/sh -c pnpm install --no-frozen-lockfile" did not complete successfully: exit code: 1
+
+
+#9 [internal] load build context
+
+------
+
+> [6/8] RUN pnpm install --no-frozen-lockfile:
+
+0.699 Scope: all 2 workspace projects
+
+0.972 /app/artifacts/api-server:
+
+0.972  ERR_PNPM_WORKSPACE_PKG_NOT_FOUND  In artifacts/api-server: "@workspace/api-zod@workspace:*" is in the dependencies but no package named "@workspace/api-zod" is present in the workspace
+
+0.972
+
+0.972 This error happened while installing a direct dependency of /app/artifacts/api-server
+
+0.972
+
+0.972 Packages found in the workspace:
+
+------
+
+==> Building image
+
+Waiting for depot builder...
+
+
+==> Building image with Depot
+
+--> build: (​)
+
+#1 [internal] load build definition from Dockerfile
+
+#1 DONE 0.0s
+
+
+#1 [internal] load build definition from Dockerfile
+
+#1 transferring dockerfile: 445B done
+
+#1 DONE 0.0s
+
+
+#2 [internal] load metadata for docker.io/library/node:20-slim
+
+#2 DONE 0.2s
+
+
+#3 [internal] load .dockerignore
+
+#3 transferring context: 2B done
+
+#3 DONE 0.0s
+
+
+#4 [1/8] FROM docker.io/library/node:20-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0
+
+#4 resolve docker.io/library/node:20-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 done
+
+#4 DONE 0.0s
+
+
+#5 [2/8] RUN npm install -g pnpm
+
+#5 CACHED
+
+
+#6 [3/8] WORKDIR /app
+
+#6 CACHED
+
+
+#7 [4/8] COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+
+#7 CACHED
+
+
+#8 [5/8] COPY artifacts/api-server/package.json ./artifacts/api-server/
+
+#8 CACHED
+
+
+#9 [internal] load build context
+
+#9 transferring context: 12.08kB 0.0s done
+
+#9 ...
+
+
+#10 [6/8] RUN pnpm install --no-frozen-lockfile
+
+#10 0.668 Scope: all 2 workspace projects
+
+#10 0.914 /app/artifacts/api-server:
+
+#10 0.914  ERR_PNPM_WORKSPACE_PKG_NOT_FOUND  In artifacts/api-server: "@workspace/api-zod@workspace:*" is in the dependencies but no package named "@workspace/api-zod" is present in the workspace
+
+#10 0.914
+
+#10 0.914 This error happened while installing a direct dependency of /app/artifacts/api-server
+
+#10 0.914
+
+#10 0.914 Packages found in the workspace:
+
+#10 ERROR: process "/bin/sh -c pnpm install --no-frozen-lockfile" did not complete successfully: exit code: 1
+
+------
+
+> [6/8] RUN pnpm install --no-frozen-lockfile:
+
+0.668 Scope: all 2 workspace projects
+
+0.914 /app/artifacts/api-server:
+
+0.914  ERR_PNPM_WORKSPACE_PKG_NOT_FOUND  In artifacts/api-server: "@workspace/api-zod@workspace:*" is in the dependencies but no package named "@workspace/api-zod" is present in the workspace
+
+0.914
+
+0.914 This error happened while installing a direct dependency of /app/artifacts/api-server
+
+0.914
+
+0.914 Packages found in the workspace:
+
+------
+
+Error: failed to fetch an image or build from source: error building: failed to solve: process "/bin/sh -c pnpm install --no-frozen-lockfile" did not complete successfully: exit code: 1
+
+Dockerfile failed to build error
+
+unsuccessful command 'flyctl deploy --build-only --push -a frytasshop --image-label deployment-40c220e544fe726fea83fc8e3fd04b88 '
