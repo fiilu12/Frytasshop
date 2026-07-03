@@ -59,11 +59,11 @@ export function createBot(): Client {
           await command.execute(interaction as ChatInputCommandInteraction);
         } catch (err) {
           logger.error({ err }, "Błąd komendy");
-          const reply = { content: "❌ Wystąpił błąd.", flags: MessageFlags.Ephemeral };
+          const errOpts = { content: "❌ Wystąpił błąd.", flags: MessageFlags.Ephemeral } as const;
           if (interaction.replied || interaction.deferred) {
-            await (interaction as ChatInputCommandInteraction).followUp(reply);
+            await (interaction as ChatInputCommandInteraction).followUp(errOpts);
           } else {
-            await (interaction as ChatInputCommandInteraction).reply(reply);
+            await (interaction as ChatInputCommandInteraction).reply(errOpts);
           }
         }
       }

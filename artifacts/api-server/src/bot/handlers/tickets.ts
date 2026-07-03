@@ -107,7 +107,8 @@ export async function handleTicketInteraction(interaction: ButtonInteraction): P
     const existingOpenChannel = guild.channels.cache.find((ch) => {
       if (ch.type !== ChannelType.GuildText) return false;
       if (closedChannelIds.includes(ch.id)) return false; // zamknięty — nie blokuje
-      return ch.name === channelName;
+      const topic = (ch as TextChannel).topic ?? "";
+      return topic.includes(`ownerId:${guildMember.id}`);
     });
 
     if (existingOpenChannel) {
@@ -223,7 +224,7 @@ export async function handleTicketInteraction(interaction: ButtonInteraction): P
     }
 
     await interaction.reply({
-      content: "🔒 Zamykanie ticketu i generowanie transkryptu…",
+      content: "🔒 Ticket zostanie usunięty za 24 godziny.",
       flags: MessageFlags.Ephemeral,
     });
 
