@@ -27,6 +27,7 @@ export const setupTicketCommand = {
           "• Opisz swój problem\n" +
           "• Poczekaj na odpowiedź moderatora"
       )
+      .setImage("https://raw.githubusercontent.com/fiilu12/Frytasshop/main/artifacts/api-server/src/bot/assets/banner.jpg")
       .setColor(0x5865f2)
       .setFooter({ text: "System Ticketów" })
       .setTimestamp();

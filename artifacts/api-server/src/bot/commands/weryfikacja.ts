@@ -35,6 +35,7 @@ export const weryfikacjaCommand = {
           `Aby uzyskać dostęp do pozostałych kanałów, musisz przejść weryfikację.\n\n` +
           `**Kliknij reakcję ${VERIFY_EMOJI} pod tą wiadomością**, aby zweryfikować się i uzyskać dostęp.`
       )
+      .setImage("https://raw.githubusercontent.com/fiilu12/Frytasshop/main/artifacts/api-server/src/bot/assets/banner.jpg")
       .setColor(0x57f287)
       .setFooter({ text: "Weryfikacja członka serwera" })
       .setTimestamp();
