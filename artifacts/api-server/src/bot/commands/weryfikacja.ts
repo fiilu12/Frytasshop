@@ -1,6 +1,7 @@
 import {
   SlashCommandBuilder,
   EmbedBuilder,
+  MessageFlags,
   PermissionFlagsBits,
   type ChatInputCommandInteraction,
   type TextChannel,
@@ -17,7 +18,7 @@ export const weryfikacjaCommand = {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const channel = interaction.guild?.channels.cache.get(VERIFY_CHANNEL_ID) as TextChannel | undefined;
 

@@ -1,6 +1,7 @@
 import {
   Client,
   GatewayIntentBits,
+  MessageFlags,
   Partials,
   Collection,
   type ChatInputCommandInteraction,
@@ -58,7 +59,7 @@ export function createBot(): Client {
           await command.execute(interaction as ChatInputCommandInteraction);
         } catch (err) {
           logger.error({ err }, "Błąd komendy");
-          const reply = { content: "❌ Wystąpił błąd.", ephemeral: true };
+          const reply = { content: "❌ Wystąpił błąd.", flags: MessageFlags.Ephemeral };
           if (interaction.replied || interaction.deferred) {
             await (interaction as ChatInputCommandInteraction).followUp(reply);
           } else {

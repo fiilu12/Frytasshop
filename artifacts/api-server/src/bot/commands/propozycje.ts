@@ -1,6 +1,7 @@
 import {
   SlashCommandBuilder,
   EmbedBuilder,
+  MessageFlags,
   PermissionFlagsBits,
   ChannelType,
   type ChatInputCommandInteraction,
@@ -42,7 +43,7 @@ export const propozycjeCommand = {
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const sub = interaction.options.getSubcommand();
 
     if (sub === "ustaw") {

@@ -2,6 +2,7 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   EmbedBuilder,
+  MessageFlags,
   type ChatInputCommandInteraction,
 } from "discord.js";
 import { getConfig } from "../config.js";
@@ -26,7 +27,7 @@ export const sprawdzzaproCommand = {
     if (!stats || stats.joined === 0) {
       await interaction.reply({
         content: `❌ <@${user.id}> nie zaprosił jeszcze nikogo.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -45,6 +46,6 @@ export const sprawdzzaproCommand = {
       .setFooter({ text: `ID: ${user.id}` })
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   },
 };

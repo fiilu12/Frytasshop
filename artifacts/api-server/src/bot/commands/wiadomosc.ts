@@ -1,6 +1,7 @@
 import {
   SlashCommandBuilder,
   EmbedBuilder,
+  MessageFlags,
   PermissionFlagsBits,
   ChannelType,
   type ChatInputCommandInteraction,
@@ -24,7 +25,7 @@ export const wiadomoscCommand = {
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const channel = interaction.options.getChannel("kanal") as TextChannel;
 

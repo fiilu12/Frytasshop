@@ -4,6 +4,7 @@ import {
   ButtonStyle,
   EmbedBuilder,
   ChannelType,
+  MessageFlags,
   OverwriteType,
   PermissionFlagsBits,
   type ButtonInteraction,
@@ -92,7 +93,7 @@ export async function handleTicketInteraction(interaction: ButtonInteraction): P
 
   // ── OTWIERANIE TICKETU ────────────────────────────────────────────────────
   if (customId === "ticket_create") {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const guildMember = member as GuildMember;
     const channelName = `ticket-${guildMember.user.username
@@ -199,7 +200,7 @@ export async function handleTicketInteraction(interaction: ButtonInteraction): P
     if (!isAdmin && !hasSupportRole && !isOwner) {
       await interaction.reply({
         content: "❌ Nie masz uprawnień do zamknięcia tego ticketu.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -216,14 +217,14 @@ export async function handleTicketInteraction(interaction: ButtonInteraction): P
     if (pending) {
       await interaction.reply({
         content: "❌ Ten ticket jest już zamknięty i oczekuje na usunięcie.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
 
     await interaction.reply({
       content: "🔒 Zamykanie ticketu i generowanie transkryptu…",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
 
     const client = interaction.client;

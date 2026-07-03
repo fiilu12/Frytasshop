@@ -1,6 +1,7 @@
 import {
   SlashCommandBuilder,
   PermissionFlagsBits,
+  MessageFlags,
   type ChatInputCommandInteraction,
   ChannelType,
 } from "discord.js";
@@ -24,7 +25,7 @@ export const ustawkanalZaproCommand = {
     setInviteChannel(channel.id);
     await interaction.reply({
       content: `✅ Powiadomienia o zaproszeniach będą wysyłane na <#${channel.id}>.`,
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   },
 };
